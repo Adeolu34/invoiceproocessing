@@ -1,6 +1,7 @@
 version: "3.9"
 
 services:
+
   app:
     build:
       context: .
@@ -11,8 +12,12 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://invoice_user:invoice_pass@postgres:5432/invoice_db
-      - REDIS_URL=redis://redis:6379/0
+      - SERVICE_TYPE=web
+      # Defaults point to the local postgres/redis containers.
+      # Coolify (or any external platform) can override these by injecting
+      # DATABASE_URL and REDIS_URL as env vars.
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://invoice_user:invoice_pass@postgres:5432/invoice_db}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
     depends_on:
       postgres:
         condition: service_healthy
@@ -22,7 +27,6 @@ services:
       - invoice_data:/data/invoices
       - screenshots_data:/data/screenshots
       - logs_data:/app/logs
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --workers 2
     restart: unless-stopped
     networks:
       - invoice_net
@@ -35,8 +39,9 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://invoice_user:invoice_pass@postgres:5432/invoice_db
-      - REDIS_URL=redis://redis:6379/0
+      - SERVICE_TYPE=worker
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://invoice_user:invoice_pass@postgres:5432/invoice_db}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,7 +51,6 @@ services:
       - invoice_data:/data/invoices
       - screenshots_data:/data/screenshots
       - logs_data:/app/logs
-    command: celery -A app.tasks.celery_app.celery_app worker --loglevel=info -Q high,default,low --concurrency=4
     restart: unless-stopped
     networks:
       - invoice_net
@@ -59,11 +63,11 @@ services:
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://invoice_user:invoice_pass@postgres:5432/invoice_db
-      - REDIS_URL=redis://redis:6379/0
+      - SERVICE_TYPE=beat
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://invoice_user:invoice_pass@postgres:5432/invoice_db}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
     depends_on:
       - redis
-    command: celery -A app.tasks.celery_app.celery_app beat --loglevel=info --scheduler celery.beat:PersistentScheduler
     restart: unless-stopped
     networks:
       - invoice_net
@@ -78,10 +82,10 @@ services:
     env_file:
       - .env
     environment:
-      - REDIS_URL=redis://redis:6379/0
+      - SERVICE_TYPE=flower
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
     depends_on:
       - redis
-    command: celery -A app.tasks.celery_app.celery_app flower --port=5555 --broker=redis://redis:6379/0
     restart: unless-stopped
     networks:
       - invoice_net
