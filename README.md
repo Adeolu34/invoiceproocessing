@@ -35,7 +35,49 @@ A production-grade RPA pipeline that automates the full invoice workflow:
 └─────────────────┘
 ```
 
-## Quick Start
+## Deploy to Render
+
+### 1. Push to GitHub (already done)
+
+### 2. Create a Render Blueprint
+- Go to **dashboard.render.com** → **New** → **Blueprint**
+- Connect your GitHub repo (`Adeolu34/invoiceproocessing`)
+- Render reads `render.yaml` and creates all 5 services automatically:
+  - `invoice-web` — FastAPI API
+  - `invoice-worker` — Celery worker
+  - `invoice-beat` — Celery beat scheduler
+  - `invoice-redis` — Redis instance
+  - `invoice-postgres` — PostgreSQL database
+
+### 3. Set sensitive environment variables
+In the Render dashboard, go to each service → **Environment** and add:
+
+```
+SLACK_WEBHOOK_URL=https://hooks.slack.com/...
+ACCOUNTING_PORTAL_URL=https://your-portal.com
+ACCOUNTING_USER=admin@company.com
+ACCOUNTING_PASS=your_password
+IMAP_HOST=imap.gmail.com
+IMAP_USER=your@gmail.com
+IMAP_PASS=your_app_password
+SMTP_HOST=smtp.gmail.com
+SMTP_USER=your@gmail.com
+SMTP_PASS=your_app_password
+```
+
+### 4. Deploy
+Click **Apply** — Render builds and deploys all services from the same Dockerfile.
+The `SERVICE_TYPE` env var controls what each container runs.
+
+Your live API: `https://invoice-web.onrender.com/docs`
+
+> **Note on plan:** Playwright + Chromium needs ~512MB RAM.
+> Use `starter` plan ($7/mo) for the web and worker services.
+> PostgreSQL and Redis are on the free tier.
+
+---
+
+## Local Development
 
 ### 1. Clone and configure
 

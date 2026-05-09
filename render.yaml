@@ -1,0 +1,126 @@
+## Render Infrastructure as Code
+## Deploy at: https://dashboard.render.com/blueprints
+## Docs: https://render.com/docs/blueprint-spec
+
+services:
+
+  # ── FastAPI Web Service ────────────────────────────────────────────────────
+  - type: web
+    name: invoice-web
+    runtime: docker
+    plan: starter        # starter ($7/mo) recommended — Playwright needs 512MB+ RAM
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: SERVICE_TYPE
+        value: web
+      - key: DATABASE_URL
+        fromDatabase:
+          name: invoice-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: invoice-redis
+          property: connectionString
+      - key: INVOICE_WATCH_FOLDER
+        value: /data/invoices
+      - key: SCREENSHOTS_DIR
+        value: /data/screenshots
+      - key: LOG_LEVEL
+        value: INFO
+      # ── Add these manually in Render dashboard (sensitive values) ──────────
+      - key: SLACK_WEBHOOK_URL
+        sync: false
+      - key: ACCOUNTING_PORTAL_URL
+        sync: false
+      - key: ACCOUNTING_USER
+        sync: false
+      - key: ACCOUNTING_PASS
+        sync: false
+      - key: IMAP_HOST
+        sync: false
+      - key: IMAP_USER
+        sync: false
+      - key: IMAP_PASS
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+
+  # ── Celery Worker ──────────────────────────────────────────────────────────
+  - type: worker
+    name: invoice-worker
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: true
+    envVars:
+      - key: SERVICE_TYPE
+        value: worker
+      - key: DATABASE_URL
+        fromDatabase:
+          name: invoice-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: invoice-redis
+          property: connectionString
+      - key: INVOICE_WATCH_FOLDER
+        value: /data/invoices
+      - key: SCREENSHOTS_DIR
+        value: /data/screenshots
+      - key: LOG_LEVEL
+        value: INFO
+      - key: SLACK_WEBHOOK_URL
+        sync: false
+      - key: ACCOUNTING_PORTAL_URL
+        sync: false
+      - key: ACCOUNTING_USER
+        sync: false
+      - key: ACCOUNTING_PASS
+        sync: false
+
+  # ── Celery Beat Scheduler ──────────────────────────────────────────────────
+  - type: worker
+    name: invoice-beat
+    runtime: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeploy: true
+    envVars:
+      - key: SERVICE_TYPE
+        value: beat
+      - key: DATABASE_URL
+        fromDatabase:
+          name: invoice-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: invoice-redis
+          property: connectionString
+      - key: LOG_LEVEL
+        value: INFO
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  - type: redis
+    name: invoice-redis
+    plan: free
+    maxmemoryPolicy: noeviction
+
+databases:
+
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  - name: invoice-postgres
+    databaseName: invoice_db
+    user: invoice_user
+    plan: free
