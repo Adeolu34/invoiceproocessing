@@ -1,0 +1,57 @@
+# Environment
+.env
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Logs
+logs/
+*.log
+
+# Screenshots
+screenshots/
+
+# Uploads / downloads
+invoices/
+downloads/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Alembic
+alembic/versions/*.pyc
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Docker override (local only)
+docker-compose.override.yml
