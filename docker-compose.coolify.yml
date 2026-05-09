@@ -1,0 +1,86 @@
+## Coolify deployment — app services only.
+## PostgreSQL and Redis are added as separate Coolify services (one-click in UI).
+## Coolify injects DATABASE_URL and REDIS_URL automatically.
+##
+## In Coolify: set "Docker Compose file" to docker-compose.coolify.yml
+
+version: "3.9"
+
+services:
+
+  app:
+    build:
+      context: .
+      target: production
+    ports:
+      - "8001:8001"
+    environment:
+      - SERVICE_TYPE=web
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - INVOICE_WATCH_FOLDER=${INVOICE_WATCH_FOLDER:-/data/invoices}
+      - SCREENSHOTS_DIR=${SCREENSHOTS_DIR:-/data/screenshots}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - ACCOUNTING_PORTAL_URL=${ACCOUNTING_PORTAL_URL:-}
+      - ACCOUNTING_USER=${ACCOUNTING_USER:-}
+      - ACCOUNTING_PASS=${ACCOUNTING_PASS:-}
+      - IMAP_HOST=${IMAP_HOST:-}
+      - IMAP_USER=${IMAP_USER:-}
+      - IMAP_PASS=${IMAP_PASS:-}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
+    volumes:
+      - invoice_data:/data/invoices
+      - screenshots_data:/data/screenshots
+      - logs_data:/app/logs
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      target: production
+    environment:
+      - SERVICE_TYPE=worker
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - INVOICE_WATCH_FOLDER=${INVOICE_WATCH_FOLDER:-/data/invoices}
+      - SCREENSHOTS_DIR=${SCREENSHOTS_DIR:-/data/screenshots}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - ACCOUNTING_PORTAL_URL=${ACCOUNTING_PORTAL_URL:-}
+      - ACCOUNTING_USER=${ACCOUNTING_USER:-}
+      - ACCOUNTING_PASS=${ACCOUNTING_PASS:-}
+    volumes:
+      - invoice_data:/data/invoices
+      - screenshots_data:/data/screenshots
+      - logs_data:/app/logs
+    restart: unless-stopped
+
+  beat:
+    build:
+      context: .
+      target: production
+    environment:
+      - SERVICE_TYPE=beat
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+
+  flower:
+    build:
+      context: .
+      target: production
+    ports:
+      - "5555:5555"
+    environment:
+      - SERVICE_TYPE=flower
+      - REDIS_URL=${REDIS_URL}
+    restart: unless-stopped
+
+volumes:
+  invoice_data:
+  screenshots_data:
+  logs_data:
