@@ -99,9 +99,10 @@ services:
       - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 10s
     restart: unless-stopped
     networks:
       - invoice_net
@@ -119,24 +120,22 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U invoice_user -d invoice_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 5s
+      timeout: 10s
+      retries: 15
+      start_period: 40s
     restart: unless-stopped
     networks:
       - invoice_net
 
+# No explicit `name:` on volumes — lets Coolify (and Docker Compose) manage
+# project-scoped names without cross-deployment conflicts.
 volumes:
   postgres_data:
-    name: invoice_postgres_data
   redis_data:
-    name: invoice_redis_data
   invoice_data:
-    name: invoice_files_data
   screenshots_data:
-    name: invoice_screenshots_data
   logs_data:
-    name: invoice_logs_data
 
 networks:
   invoice_net:
