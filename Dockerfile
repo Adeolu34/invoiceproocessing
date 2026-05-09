@@ -80,6 +80,10 @@ RUN python -m playwright install chromium
 # Copy application source
 COPY --chown=appuser:appuser . .
 
+# Make entrypoint executable
+RUN chmod +x entrypoint.sh
+
 EXPOSE 8001
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+# SERVICE_TYPE controls what runs: web | worker | beat | flower | migrate
+CMD ["./entrypoint.sh"]

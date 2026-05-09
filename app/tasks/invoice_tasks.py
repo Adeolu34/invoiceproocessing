@@ -27,11 +27,7 @@ def _get_sync_session():
     from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
-    # Convert async URL to sync (asyncpg → psycopg2)
-    sync_url = settings.database_url.replace(
-        "postgresql+asyncpg://", "postgresql+psycopg2://"
-    )
-    engine = create_engine(sync_url, pool_pre_ping=True)
+    engine = create_engine(settings.sync_database_url, pool_pre_ping=True)
     Session = sessionmaker(bind=engine, expire_on_commit=False)
     return Session()
 

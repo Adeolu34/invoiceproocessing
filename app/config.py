@@ -20,7 +20,22 @@ class Settings(BaseSettings):
     )
 
     # ── Database ──────────────────────────────────────────────────────────────
+    # Railway provides plain postgresql:// — we normalise to the async driver here
     database_url: str = "postgresql+asyncpg://invoice_user:invoice_pass@localhost:5432/invoice_db"
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def normalise_database_url(cls, v: str) -> str:
+        """Ensure the URL always uses the asyncpg driver.
+
+        Railway injects DATABASE_URL as postgresql:// or postgres://.
+        SQLAlchemy async engine requires postgresql+asyncpg://.
+        """
+        if v.startswith("postgres://"):
+            v = "postgresql+asyncpg://" + v[len("postgres://"):]
+        elif v.startswith("postgresql://"):
+            v = "postgresql+asyncpg://" + v[len("postgresql://"):]
+        return v
 
     # ── Redis ─────────────────────────────────────────────────────────────────
     redis_url: str = "redis://localhost:6379/0"
@@ -66,6 +81,11 @@ class Settings(BaseSettings):
         p = Path(self.invoice_watch_folder)
         p.mkdir(parents=True, exist_ok=True)
         return p
+
+    @property
+    def sync_database_url(self) -> str:
+        """Synchronous psycopg2 URL for Celery tasks (no async engine)."""
+        return self.database_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://")
 
     @property
     def celery_broker_url(self) -> str:
