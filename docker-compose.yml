@@ -6,138 +6,75 @@ services:
     build:
       context: .
       target: production
-    container_name: invoice_app
     ports:
       - "8001:8001"
-    env_file:
-      - .env
     environment:
       - SERVICE_TYPE=web
-      # Defaults point to the local postgres/redis containers.
-      # Coolify (or any external platform) can override these by injecting
-      # DATABASE_URL and REDIS_URL as env vars.
-      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://invoice_user:invoice_pass@postgres:5432/invoice_db}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - INVOICE_WATCH_FOLDER=${INVOICE_WATCH_FOLDER:-/data/invoices}
+      - SCREENSHOTS_DIR=${SCREENSHOTS_DIR:-/data/screenshots}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - ACCOUNTING_PORTAL_URL=${ACCOUNTING_PORTAL_URL:-}
+      - ACCOUNTING_USER=${ACCOUNTING_USER:-}
+      - ACCOUNTING_PASS=${ACCOUNTING_PASS:-}
+      - IMAP_HOST=${IMAP_HOST:-}
+      - IMAP_USER=${IMAP_USER:-}
+      - IMAP_PASS=${IMAP_PASS:-}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_USER=${SMTP_USER:-}
+      - SMTP_PASS=${SMTP_PASS:-}
     volumes:
       - invoice_data:/data/invoices
       - screenshots_data:/data/screenshots
       - logs_data:/app/logs
     restart: unless-stopped
-    networks:
-      - invoice_net
 
   worker:
     build:
       context: .
       target: production
-    container_name: invoice_worker
-    env_file:
-      - .env
     environment:
       - SERVICE_TYPE=worker
-      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://invoice_user:invoice_pass@postgres:5432/invoice_db}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - INVOICE_WATCH_FOLDER=${INVOICE_WATCH_FOLDER:-/data/invoices}
+      - SCREENSHOTS_DIR=${SCREENSHOTS_DIR:-/data/screenshots}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - ACCOUNTING_PORTAL_URL=${ACCOUNTING_PORTAL_URL:-}
+      - ACCOUNTING_USER=${ACCOUNTING_USER:-}
+      - ACCOUNTING_PASS=${ACCOUNTING_PASS:-}
     volumes:
       - invoice_data:/data/invoices
       - screenshots_data:/data/screenshots
       - logs_data:/app/logs
     restart: unless-stopped
-    networks:
-      - invoice_net
 
   beat:
     build:
       context: .
       target: production
-    container_name: invoice_beat
-    env_file:
-      - .env
     environment:
       - SERVICE_TYPE=beat
-      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://invoice_user:invoice_pass@postgres:5432/invoice_db}
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
-    depends_on:
-      - redis
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     restart: unless-stopped
-    networks:
-      - invoice_net
 
   flower:
     build:
       context: .
       target: production
-    container_name: invoice_flower
     ports:
       - "5555:5555"
-    env_file:
-      - .env
     environment:
       - SERVICE_TYPE=flower
-      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
-    depends_on:
-      - redis
+      - REDIS_URL=${REDIS_URL}
     restart: unless-stopped
-    networks:
-      - invoice_net
 
-  redis:
-    image: redis:7.2-alpine
-    container_name: invoice_redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
-    restart: unless-stopped
-    networks:
-      - invoice_net
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: invoice_postgres
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_DB: invoice_db
-      POSTGRES_USER: invoice_user
-      POSTGRES_PASSWORD: invoice_pass
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U invoice_user -d invoice_db"]
-      interval: 5s
-      timeout: 10s
-      retries: 15
-      start_period: 40s
-    restart: unless-stopped
-    networks:
-      - invoice_net
-
-# No explicit `name:` on volumes — lets Coolify (and Docker Compose) manage
-# project-scoped names without cross-deployment conflicts.
 volumes:
-  postgres_data:
-  redis_data:
   invoice_data:
   screenshots_data:
   logs_data:
-
-networks:
-  invoice_net:
-    name: invoice_network
-    driver: bridge
