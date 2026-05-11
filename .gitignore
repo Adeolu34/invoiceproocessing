@@ -32,7 +32,6 @@ invoices/
 downloads/
 
 # IDE
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -55,3 +54,7 @@ htmlcov/
 
 # Docker override (local only)
 docker-compose.override.yml
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
