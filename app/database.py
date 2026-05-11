@@ -15,13 +15,22 @@ from app.config import get_settings
 
 settings = get_settings()
 
+# Neon / Supabase / cloud providers append ?sslmode=require to the URL.
+# asyncpg needs ssl passed as a connect_arg instead of a query param.
+_db_url = settings.database_url
+_connect_args: dict = {}
+if "sslmode=require" in _db_url:
+    _db_url = _db_url.replace("?sslmode=require", "").replace("&sslmode=require", "")
+    _connect_args["ssl"] = "require"
+
 # Create async engine — pool_pre_ping keeps connections alive across restarts
 engine = create_async_engine(
-    settings.database_url,
+    _db_url,
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20,
     echo=settings.log_level == "DEBUG",
+    connect_args=_connect_args,
 )
 
 # Session factory — expire_on_commit=False avoids lazy-load errors after commit

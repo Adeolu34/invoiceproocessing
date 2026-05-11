@@ -26,15 +26,27 @@ class Settings(BaseSettings):
     @field_validator("database_url", mode="before")
     @classmethod
     def normalise_database_url(cls, v: str) -> str:
-        """Ensure the URL always uses the asyncpg driver.
+        """Normalise any postgres URL variant to postgresql+asyncpg://.
 
-        Railway injects DATABASE_URL as postgresql:// or postgres://.
-        SQLAlchemy async engine requires postgresql+asyncpg://.
+        Handles:
+          postgres://...              → plain driver shorthand (Railway, Render)
+          postgresql://...            → standard (Coolify, Neon, Supabase)
+          postgresql://...?sslmode=require → Neon / cloud providers with SSL param
+        SQLAlchemy asyncpg handles SSL automatically when the param is present.
         """
         if v.startswith("postgres://"):
             v = "postgresql+asyncpg://" + v[len("postgres://"):]
         elif v.startswith("postgresql://"):
             v = "postgresql+asyncpg://" + v[len("postgresql://"):]
+        return v
+
+    @field_validator("redis_url", mode="before")
+    @classmethod
+    def normalise_redis_url(cls, v: str) -> str:
+        """Accept rediss:// (Upstash TLS) alongside plain redis://.
+
+        Celery and redis-py both support rediss:// natively for TLS connections.
+        """
         return v
 
     # ── Redis ─────────────────────────────────────────────────────────────────
